@@ -12,12 +12,12 @@ for (p in packages) {
 guide_library <- "val"
 
 ## TKOv3 library specific files
-#essentials_file <- "/Users/catherineross/GIN/data/pipeline_input/essentialGenes/essential_genes_6_12.txt"
-#wt_file <- list.files(pattern="GIN.*.xlsx", path="/Users/catherineross/GIN/data/wildtypes", full.names=TRUE)
+#essentials_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/essentialGenes/essential_genes_6_12.txt"
+#wt_file <- list.files(pattern="GIN.*.xlsx", path="/Users/catherineross/projects/GIN/data/wildtypes", full.names=TRUE)
 
 ## Tiling library specific files
-#essentials_file <- "/Users/catherineross/GIN/data/validation_tiling/tiling_essentials.txt"
-#wt_file <- list.files(pattern="foldchange_mean.txt", path="/Users/catherineross/GIN/data/validation_tiling", full.names=TRUE)
+#essentials_file <- "/Users/catherineross/projects/GIN/data/validation_tiling/tiling_essentials.txt"
+#wt_file <- list.files(pattern="foldchange_mean.txt", path="/Users/catherineross/projects/GIN/data/validation_tiling", full.names=TRUE)
 
 ## Depmap library specific files
 essentials_file <- "/Users/catherineross/GIN/data/pipeline_input/essentialGenes/DepMap_essential_19Q2_60_percent.txt"
@@ -25,8 +25,8 @@ essentials_file <- "/Users/catherineross/GIN/data/pipeline_input/essentialGenes/
 ## Other files & directories
 input_file <- sprintf("input_data/%s/gRNA_guideSeq.txt", guide_library) # original guide library file
 seq_score_file <- "input_data/gRNA_seqScores_Hart_2017.txt" # gRNA sequence score table (BAGEL 2017 paper)
-core_file <- "/Users/catherineross/GIN/data/pipeline_input/essentialGenes/ess_traver.txt" # core essentials
-tko_guide_file <- "/Users/catherineross/GIN/data/pipeline_input/experimentalInfo/TKOv3_Library_20170518.txt" # TKO guides
+core_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/essentialGenes/ess_traver.txt" # core essentials
+tko_guide_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/experimentalInfo/TKOv3_Library_20170518.txt" # TKO guides
 crispro_file <- sprintf("output_data/out_%s/crispro/CRISPRO.GRCh37.ensembl90.20180901_%s.txt", guide_library, guide_library)
 indel_file <- sprintf("output_data/out_%s/indelphi/indelphi_K562_guideSeq79_stats.txt", guide_library)
 azimuth_file <- sprintf("output_data/out_%s/azimuth/azimuth_guideSeq30_predictions.txt", guide_library)
