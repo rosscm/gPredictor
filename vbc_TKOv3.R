@@ -1,5 +1,4 @@
 # Script to test predictive capability of VBC score on guide effectiveness
-
 library(openxlsx)
 library(data.table)
 library(dplyr)
@@ -406,17 +405,47 @@ pdf(plot_out9, width = 8, height = 4, useDingbats = FALSE)
 print(p9)
 dev.off()
 
-# Prepare output file
-table_final <- list()
-
 # Filter for guides with low mean LFC and high VBC prediction
-tko_vbc4 <- filter(tko_vbc3, guide_set == "TKOv3_new" | guide_pred == "weakLFC_highVBC")
+# For genes with multiple guides, sort by Auto_pick and select top one
+tko_vbc4 <- tko_vbc3 %>%
+  filter(guide_set == "VBC", guide_pred == "weakLFC_highVBC") %>%
+  group_by(GENE) %>%
+  arrange(Auto_pick_top_sgRNAs) %>%
+  slice(1) %>%
+  as.data.frame
 
-# Populate table
-table_final[["all_TKOv3new"]] <- tko
-#table_final[["all_TKOv3new_all_VBC"]] <- tko_vbc3
-table_final[["all_TKOv3new_highPred_VBC"]] <- tko_vbc4
+# Fix tko column names
+col_names <- colnames(tko)[-ncol(tko)]
+rownames(tko) <- tko[,1]
+tko <- tko[,-1]
+colnames(tko) <- col_names
+
+# Add vbc gudies to reduced TKOv3 guide file
+vbc_df <- matrix(nrow = nrow(tko_vbc4), ncol = ncol(tko))
+colnames(vbc_df) <- colnames(tko)
+vbc_df <- as.data.frame(vbc_df)
+vbc_df$GENE <- tko_vbc4$GENE
+vbc_df$SEQUENCE <- tko_vbc4$SEQUENCE
+vbc_df$Source <- "VBC predicted"
+
+# Combine
+rownames(tko) <- NULL
+final <- bind_rows(tko, vbc_df)
+final <- final[order(final$GENE),]
+rownames(final) <- make.unique(final$GENE)
 
 # Write out
-table_out <- sprintf("%s/%s_VBC.xlsx", output_folder, gsub(".xlsx", "", basename(tko_file)))
+table_out <- sprintf("%s/%s_VBC_CR.xlsx", output_folder, gsub(".xlsx", "", basename(tko_file)))
 write.xlsx(table_final, file = table_out, row.names = FALSE)
+
+# NOTE find incompatible guides (KB)
+# The recipe I use for finding these is to pad them with CGACCG on the front
+# and GTTTAG on the back, and then use a regular expression (or strict string
+# matching will work) to search for CGTCTC or GAGACG in the full padded sequence.
+# So you'll notice a bunch of the "failures" start with TCTC, which will match
+# CGTCTC when dropped into the vector, and thus be cut incorrectly by the
+# restriction enzymes during cloning.
+
+blah <- final
+blah$SEQUENCE_PAD <- paste("CGACCG", blah$SEQUENCE, "GTTTAG", sep = "")
+grep("CGTCTC|GAGACG", blah$SEQUENCE_PAD)
