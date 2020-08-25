@@ -62,9 +62,16 @@ if (!file.exists(input_file)) {
   stop("ERROR: Input guide library file does not exist!")
 }
 
-# Install genome annotation correponding to specific genome build
-if (genome_build == "hg19") genome_pkg <- "BSgenome.Hsapiens.UCSC.hg19"
-if (genome_build == "hg38") genome_pkg <- "BSgenome.Hsapiens.NCBI.GRCh38"
+# Load genome annotation package correponding to genome build
+if (genome_build == "hg19") {
+  genome_pkg <- "BSgenome.Hsapiens.UCSC.hg19"
+} else if (genome_build == "hg38") {
+  genome_pkg <- "BSgenome.Hsapiens.NCBI.GRCh38"
+} else {
+  stop("Please define the genome build of your library (hg19, hg38).\n")
+}
+
+# Load package
 suppressPackageStartupMessages(library(genome_pkg, character.only = TRUE))
 
 # Create library-specific output folder if it doesn't already exist
