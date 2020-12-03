@@ -24,7 +24,7 @@ essentials_file <- "/Users/catherineross/GIN/data/pipeline_input/essentialGenes/
 
 ## Other files & directories
 input_file <- sprintf("input_data/%s/gRNA_guideSeq.txt", guide_library) # original guide library file
-seq_score_file <- "input_data/gRNA_seqScores_Hart_2017.txt" # gRNA sequence score table (BAGEL 2017 paper)
+seq_score_file <- "input_data/TKOv3/gRNA_seqScores_Hart_2017.txt" # gRNA sequence score table (BAGEL 2017 paper)
 core_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/essentialGenes/ess_traver.txt" # core essentials
 tko_guide_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/experimentalInfo/TKOv3_Library_20170518.txt" # TKO guides
 crispro_file <- sprintf("output_data/out_%s/crispro/CRISPRO.GRCh37.ensembl90.20180901_%s.txt", guide_library, guide_library)
