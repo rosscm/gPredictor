@@ -10,8 +10,7 @@ library(ggrepel)
 library(openxlsx)
 library(pheatmap)
 
-dataDir <- "/Users/catherineross/GIN"
-outDir <- sprintf("%s/bin/R/guideAnalysis", dataDir)
+outDir <- "~/projects/gPredictor"
 
 ####################################################
 # DATA INPUT

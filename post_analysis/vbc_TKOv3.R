@@ -15,6 +15,7 @@ library(jtools)
 
 # VBC score flile
 # https://www.nature.com/articles/s41592-020-0850-8#code-availability
+setwd("~/projects/gPredictor")
 vbc_file <- "input_data/vbc_score/hg38_all_sgRNAs.txt"
 
 # Reduced TKOv3 library files
@@ -446,6 +447,6 @@ write.xlsx(table_final, file = table_out, row.names = FALSE)
 # CGTCTC when dropped into the vector, and thus be cut incorrectly by the
 # restriction enzymes during cloning.
 
-blah <- final
-blah$SEQUENCE_PAD <- paste("CGACCG", blah$SEQUENCE, "GTTTAG", sep = "")
-grep("CGTCTC|GAGACG", blah$SEQUENCE_PAD)
+#blah <- final
+#blah$SEQUENCE_PAD <- paste("CGACCG", blah$SEQUENCE, "GTTTAG", sep = "")
+#grep("CGTCTC|GAGACG", blah$SEQUENCE_PAD)

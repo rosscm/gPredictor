@@ -8,6 +8,7 @@ library(tidyverse)
 ######
 
 # List of query genes
+setwd("~/projects/gPredictor")
 genes_file <- "input_data/dick_lab/30 genes_Elvin_DickLab.xlsx"
 genes <- read.xlsx(genes_file)
 genes <- c(genes[,1], colnames(genes), "OR2B11")
@@ -25,7 +26,6 @@ anno <- fread(anno_file, h = TRUE, data.table = FALSE)
 
 ######
 # GUIDE LIST PER GENE
-######
 ######
 
 # Subset crispro annotations for query genes
@@ -83,7 +83,7 @@ dat <- left_join(gene_anno4, guide_scores_df)
 ######
 
 # File of TKOv3 guides
-tko_guide_file <- "/Users/catherineross/GIN/data/pipeline_input/experimentalInfo/TKOv3_Library_20170518.txt"
+tko_guide_file <- "~/data/pipeline_input/experimentalInfo/TKOv3_Library_20170518.txt"
 tko_guide <- read.delim(tko_guide_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
 
 # Join with dat
@@ -95,7 +95,7 @@ dat[which(dat$guide %in% tko_guide$SEQUENCE), "TKOv3"] <- "Yes"
 ######
 
 # GIN Wildtype LFC data
-wt_file <- list.files(pattern="GIN.*.xlsx", path="/Users/catherineross/GIN/data/wildtypes", full.names=TRUE)
+wt_file <- list.files(pattern="GIN.*.xlsx", path="~/data/wildtypes", full.names=TRUE)
 wt_name <- paste("wt", substr(basename(wt_file), 4, 6), sep = "_")
 wt <- lapply(wt_file, function(x) read.xlsx(x, sheet = 2))
 
