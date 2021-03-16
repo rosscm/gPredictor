@@ -9,28 +9,23 @@ for (p in packages) {
 # USER INPUTS
 ######
 
-guide_library <- "val"
+guide_library = "val"
 
-## TKOv3 library specific files
-#essentials_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/essentialGenes/essential_genes_6_12.txt"
-#wt_file <- list.files(pattern="GIN.*.xlsx", path="/Users/catherineross/projects/GIN/data/wildtypes", full.names=TRUE)
-
-## Tiling library specific files
-#essentials_file <- "/Users/catherineross/projects/GIN/data/validation_tiling/tiling_essentials.txt"
-#wt_file <- list.files(pattern="foldchange_mean.txt", path="/Users/catherineross/projects/GIN/data/validation_tiling", full.names=TRUE)
-
-## Depmap library specific files
-essentials_file <- "/Users/catherineross/GIN/data/pipeline_input/essentialGenes/DepMap_essential_19Q2_60_percent.txt"
-
-## Other files & directories
-input_file <- sprintf("input_data/%s/gRNA_guideSeq.txt", guide_library) # original guide library file
+# User files
+essentials_file <- "~/data/essentials/DepMap_essential_19Q2_60_percent.txt"
+core_file       <- "~/data/essentials/ess_traver.txt" # core essentials
+tko_guide_file  <- "~/data/TKOv3/TKOv3_Library_20170518.txt" # TKOv3 guides
 seq_score_file <- "input_data/TKOv3/gRNA_seqScores_Hart_2017.txt" # gRNA sequence score table (BAGEL 2017 paper)
-core_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/essentialGenes/ess_traver.txt" # core essentials
-tko_guide_file <- "/Users/catherineross/projects/GIN/data/pipeline_input/experimentalInfo/TKOv3_Library_20170518.txt" # TKO guides
-crispro_file <- sprintf("output_data/out_%s/crispro/CRISPRO.GRCh37.ensembl90.20180901_%s.txt", guide_library, guide_library)
-indel_file <- sprintf("output_data/out_%s/indelphi/indelphi_K562_guideSeq79_stats.txt", guide_library)
-azimuth_file <- sprintf("output_data/out_%s/azimuth/azimuth_guideSeq30_predictions.txt", guide_library)
-forecast_file <- sprintf("output_data/out_%s/forecast/forecast_all_predictedindelsummary.txt", guide_library)
+vbc_file       <- "input_data/vbc_score/hg38_all_sgRNAs.txt"
+
+# gPredictor files
+input_file     <- sprintf("input_data/%s/gRNA_guideSeq.txt", guide_library) # original guide library file
+crispro_file   <- sprintf("output_data/out_%s/crispro/CRISPRO.GRCh37.ensembl90.20180901_%s.txt", guide_library, guide_library)
+indel_file     <- sprintf("output_data/out_%s/indelphi/indelphi_K562_guideSeq79_stats.txt", guide_library)
+azimuth_file   <- sprintf("output_data/out_%s/azimuth/azimuth_guideSeq30_predictions.txt", guide_library)
+forecast_file  <- sprintf("output_data/out_%s/forecast/forecast_all_predictedindelsummary.txt", guide_library)
+
+# Output directory
 output_folder <- sprintf("output_data/out_%s", guide_library)
 
 ######
@@ -38,20 +33,22 @@ output_folder <- sprintf("output_data/out_%s", guide_library)
 ######
 
 # Read in files
-essentials <- read.delim(essentials_file, h=FALSE, as.is=TRUE, stringsAsFactors=FALSE)
-core <- read.delim(core_file, h=FALSE, as.is=TRUE, stringsAsFactors=FALSE)
-input <- read.delim(input_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
-tko_guide <- read.delim(tko_guide_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
-seq_score <- read.delim(seq_score_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
-crispro <- read.delim(crispro_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
-indel <- read.delim(indel_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
-azimuth <- read.delim(azimuth_file, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE)
-forecast <- fread(forecast_file, fill=TRUE, data.table=FALSE)
+essentials <- read.delim(essentials_file, h = FALSE, as.is = TRUE)
+core <- read.delim(core_file, h = FALSE, as.is = TRUE)
+tko_guide <- read.delim(tko_guide_file, h = TRUE, as.is = TRUE)
+seq_score <- read.delim(seq_score_file, h = TRUE, as.is = TRUE)
+vbc <- fread(vbc_file, h = TRUE, data.table = FALSE)
+input <- read.delim(input_file, h = TRUE, as.is = TRUE)
+crispro <- read.delim(crispro_file, h = TRUE, as.is = TRUE)
+indel <- read.delim(indel_file, h = TRUE, as.is = TRUE)
+azimuth <- read.delim(azimuth_file, h = TRUE, as.is = TRUE)
+forecast <- fread(forecast_file, fill = TRUE, data.table = FALSE)
 
 ######
 # MODIFY TABLES FOR MERGING
 ######
 
+# Guide sequence scores
 # Modify sequence score table for easier indexing
 rownames(seq_score) <- seq_score$X
 seq_score$X <- NULL
@@ -85,6 +82,13 @@ forecast_guide$guide <- indel$guide
 # Calculate out-of-frame prediction (100-(predicted-in-frame) per guide)
 forecast_guide$predicted_oof <- 100-(forecast_guide$predicted_in_frame)
 
+# VBC (guide efficacy prediction)
+# Grab relevant columns
+vbc2 <- vbc[,c(1,2,6,7)]
+colnames(vbc2) <- c("gene_name", "guide", "vbc_score", "distance_tss_0_stop_1")
+# Remove PAM sequence
+vbc2$guide <- substr(vbc2$guide, 0, nchar(vbc2$guide)-3)
+
 ######
 # GET FOLDCHANGE DATA (TKOv3 or TILING)
 ######
@@ -92,6 +96,8 @@ forecast_guide$predicted_oof <- 100-(forecast_guide$predicted_in_frame)
 # Dropout (foldchange) data
 ## TKOv3
 if (guide_library == "TKOv3") {
+
+  wt_file <- list.files(pattern="GIN.*.xlsx", path="~/data/wildtypes", full.names=TRUE)
   wt_name <- paste("wt", substr(basename(wt_file), 4, 6), sep="_")
   wt <- lapply(wt_file, function(x) read.xlsx(x, sheet=2))
 
@@ -134,6 +140,8 @@ if (guide_library == "TKOv3") {
 
 ## Tiling
 if (guide_library == "val") {
+
+  wt_file <- list.files(pattern="foldchange_mean.txt", path="~/data/validation_tiling", full.names=TRUE)
   wt_name <- substr(basename(wt_file), 0, nchar(basename(wt_file))-29)
   wt <- lapply(wt_file, function(x) read.delim(x, h=TRUE, as.is=TRUE, stringsAsFactors=FALSE))
 
@@ -189,7 +197,6 @@ guide_scores_df <- data.frame(guide=input$SEQUENCE, gene_name=input$GENE, sequen
 colnames(input) <- c("chrom", "start", "stop", "strand", "guide", "gene_name")
 
 # Add additional library info
-# Define guide library info
 input <- cbind(
   input,
   dataset=guide_library,
@@ -197,7 +204,6 @@ input <- cbind(
   guide_library=guide_library,
   core="not_core"
 )
-
 input$essentiality <- as.character(input$essentiality)
 input$guide_library <- as.character(input$guide_library)
 input$core <- as.character(input$core)
@@ -205,15 +211,14 @@ input[which(input$gene_name %in% essentials$V1), "essentiality"] <- "essential"
 input[which(input$guide %in% tko_guide$SEQUENCE), "guide_library"] <- "TKOv3"
 input[which(input$gene_name %in% core$V1), "core"] <- "core"
 
-# List of all results tables
+# List of all guide feature tables
+all_features <- list(input, crispro3, indel, azimuth, forecast_guide, guide_scores_df, vbc2)
 if (exists("wt_mean")) {
-  all_results <- list(input, wt_mean, crispro3, indel, azimuth, forecast_guide, guide_scores_df)
-} else {
-  all_results <- list(input, crispro3, indel, azimuth, forecast_guide, guide_scores_df)
+  all_features[[length(all_features)+1]] <- wt_mean
 }
 
 # Join everything together
-dat <- join_all(all_results)
+dat <- join_all(all_features)
 dat <- unique(dat)
 
 # Clean up domain target column
@@ -228,10 +233,8 @@ dat[which(dat$SecStruct != "None"), "guide_structure"] <- "protein_structure"
 
 # Rank guides by strength of dropout (strongest=1)
 if (guide_library == "TKOv3" | guide_library == "val") {
-
   if (guide_library == "TKOv3") { dat <- dat[order(dat$logFC_min),] }
   if (guide_library == "val")   { dat <- dat[order(dat$logFC),] }
-
   # Rank and revert to original order
   dat$Rank <- 1:nrow(dat)
   dat <- dat[order(as.numeric(rownames(dat))),]
@@ -248,15 +251,17 @@ dat$doench_bin <- bin(dat$doench_score, nbins=10, method="length", na.omit=FALSE
 dat$oof_bin <- bin(dat$oof_score, nbins=10, method="length", na.omit=FALSE)
 dat$disorder_bin <- bin(dat$disorder_score, nbins=10, method="length", na.omit=FALSE)
 dat$provean_bin <- bin(dat$provean_score, nbins=10, method="length", na.omit=FALSE)
-dat$frameshift_bin <- bin(dat$Frameshift.frequency, nbins=10, method="length", na.omit=FALSE)
+dat$frameshift_bin <- (dat$Frameshift.frequency, nbins=10, method="length", na.omit=FALSE)
 dat$indel_bin <- bin(dat$Expected.indel.length, nbins=5, method="length", na.omit=FALSE)
 dat$efficiency_bin <- bin(dat$guideEfficiency_pred, nbins=10, method="length", na.omit=FALSE)
 dat$predicted_oof_bin <- bin(dat$predicted_oof, nbins=10, method="length", na.omit=FALSE)
 dat$sequence_score_bin <- bin(dat$sequence_score, nbins=10, method="length", na.omit=FALSE)
+dat$vbc_score_bin <- bin(dat$vbc_score, nbins=10, method="length", na.omit=FALSE)
 
 ######
 # WRITE OUT TABLE
 ######
 
-fname <- sprintf("output_data/out_%s/table_%s_guideScores_whole.xlsx", guide_library, guide_library)
-write.xlsx(dat, file=fname)
+fname <- sprintf("output_data/out_%s/table_%s_guideScores_whole", guide_library, guide_library)
+write.xlsx(dat, file = paste0(fname, ".xlsx"))
+write.table(dat, file = paste0(fname, ".txt"), quote = FALSE, sep = "\t")
