@@ -264,4 +264,4 @@ dat$vbc_score_bin <- bin(dat$vbc_score, nbins=10, method="length", na.omit=FALSE
 
 fname <- sprintf("output_data/out_%s/table_%s_guideScores_whole", guide_library, guide_library)
 write.xlsx(dat, file = paste0(fname, ".xlsx"))
-write.table(dat, file = paste0(fname, ".txt"), quote = FALSE, sep = "\t")
+write.table(dat, file = paste0(fname, ".txt"), quote = FALSE, row.names = FALSE, sep = "\t")
