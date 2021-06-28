@@ -1,51 +1,60 @@
 # Script to plot guide scores and test for hypomorph-generating guides
-library(plyr)
-library(dplyr)
-library(OneR)
-library(reshape2)
-library(ggplot2)
-library(gridExtra)
-library(ggpubr)
-library(ggrepel)
-library(openxlsx)
+# Load all packages
+packages <- c("dplyr", "OneR", "reshape2", "ggplot2", "gridExtra"
+              "ggpubr", "ggrepel", "openxlsx")
+for (p in packages) {
+  suppressPackageStartupMessages(library(p, character.only = TRUE))
+}
 
-dataDir <- "/Users/catherineross/GIN"
-outDir <- sprintf("%s/bin/R/guideAnalysis/output_data", dataDir)
+# Set data directory
+output_folder <- "~/projects/gPredictor/output_data"
 
-####################################################
+##############
 # DATA INPUT
-####################################################
-# Output from prepOut.R
-tko <- read.xlsx(sprintf("%s/out_TKOv3/table_TKOv3_guideScores.xlsx", outDir))
-val <- read.xlsx(sprintf("%s/out_val/table_tiling_guideScores.xlsx", outDir))
+##############
 
-## Merge data for plotting
+# Output from prepOut.R
+tko_file <- sprintf("%s/out_TKOv3/table_TKOv3_guideScores_whole.xlsx", output_folder)
+val_file <- sprintf("%s/out_val/table_val_guideScores_whole.xlsx", output_folder)
+tko <- read.xlsx(tko_file)
+val <- read.xlsx(val_file)
+
+# Merge data for plotting
 ## NOTE need to re-calculate gene fraction bins to make consistent across libraries
+
+## NOTE from 06-28-2021 ##
+## tko and val have different logFC columns (tko calculated for min/rich)
+## val only calculated for one condition
+## rbind call no longer works (fix if need to use code again ...)
+
 dat_merge <- rbind(tko, val)
 dat_merge$gene_fraction_bin <- bin(dat_merge$gene_fraction, nbins=10, method="length")
 
-####################################################
+##############
 # DATA ANALYSIS
-####################################################
-## Compare same guide in TKOv3 and tiling library
+##############
+
+# Compare same guide in TKOv3 and tiling library
 tko_fc <- tko[,c("guide", "gene_name", "logFC")]
 colnames(tko_fc)[3] <- paste(colnames(tko_fc)[3], "TKO", sep="_")
 val_fc <- val[,c("guide", "gene_name", "logFC")]
 colnames(val_fc)[3] <- paste(colnames(val_fc)[3], "tiling", sep="_")
+
 # Combine logFC data for guides in both TKOv3 and tiling and get difference
 fc_comb <- join(tko_fc, val_fc)
 fc_comb <- na.omit(fc_comb)
 fc_comb$fc_diff <- abs(fc_comb$logFC_TKO - fc_comb$logFC_tiling)
 fc_comb <- fc_comb[order(fc_comb$fc_diff, decreasing=TRUE),]
 fc_comb$int <- 1:nrow(fc_comb)
+
 # Label guides >1.5 foldchange difference
 fc_comb$label <- NA
 toLabel <- which(fc_comb$fc_diff >= 1.5)
 fc_comb[toLabel,]$label <- paste(fc_comb[toLabel,]$gene_name, fc_comb[toLabel,]$guide, sep="_")
 
 ## Plot difference in LFC measurements across libraries
-outF <- sprintf("%s/point_TKOv3_tiling_LFC_consistency.pdf", outDir)
-pdf(outF, width=13, height=5)
+out_file <- sprintf("%s/point_TKOv3_tiling_LFC_consistency.pdf", output_folder)
+pdf(out_file, width=13, height=5)
 p <- ggplot(fc_comb, aes(x=int, y=fc_diff, label=label)) +
         geom_point(size=1.5, alpha=0.5) +
         labs(x="Guide (in both libraries)", y="Diff LFC",
@@ -61,20 +70,21 @@ p <- ggplot(fc_comb, aes(x=int, y=fc_diff, label=label)) +
 print(p)
 dev.off()
 
-####################################################
+##############
 # GENERATE PLOTS
-####################################################
+##############
+
 ## 1) mean log2FC vs. exon / gene fraction
 plotPoint <- function(data, name, ess=TRUE, stats) {
   plot_list_1 <- list()
 
   if (ess==TRUE) {
     dat_filt <- filter(data, essentiality == "essential")
-    outF_1 <- sprintf("%s/point_%s_ess_guideLFC_vs_%s_perGene.pdf", outDir, name, stats)
+    out_file_1 <- sprintf("%s/point_%s_ess_guideLFC_vs_%s_perGene.pdf", output_folder, name, stats)
   }
   if (ess==FALSE) {
     dat_filt <- data
-    outF_1 <- sprintf("%s/point_%s_all_guideLFC_vs_%s_perGene.pdf", outDir, name, stats)
+    out_file_1 <- sprintf("%s/point_%s_all_guideLFC_vs_%s_perGene.pdf", output_folder, name, stats)
   }
 
   for (k in unique(dat_filt$gene_name)) {
@@ -100,7 +110,7 @@ plotPoint <- function(data, name, ess=TRUE, stats) {
   }
   cat("Arranging plots together...")
   plot_grob_1 <- marrangeGrob(plot_list_1, nrow=5, ncol=5)
-  ggsave(outF_1, plot_grob_1, width=40, height=35)
+  ggsave(out_file_1, plot_grob_1, width=40, height=35)
   cat(" done.")
 }
 
@@ -146,14 +156,14 @@ for (k in unique(dat_merge$gene_name)) {
         theme(text=element_text(family="sans", size=15),
               axis.text.x=element_text(angle=90, hjust=1))
 }
-outF_2 <- sprintf("%s/point_TKOv3_tiling_all_guideLFC_vs_%s_perGene.pdf", outDir, stat)
+out_file_2 <- sprintf("%s/point_TKOv3_tiling_all_guideLFC_vs_%s_perGene.pdf", output_folder, stat)
 plot_grob_2 <- marrangeGrob(plot_list_2, nrow=5, ncol=3)
-ggsave(outF_2, plot_grob_2, width=40, height=35)
+ggsave(out_file_2, plot_grob_2, width=40, height=35)
 
 ## 3) rank plots of all guides in library + strip chart
 # plot
-outF_3 <- sprintf("%s/strip_guideLFC_perExon_perGene.pdf", outDir)
-pdf(outF_3, width=20, height=15, useDingbats=FALSE)
+out_file_3 <- sprintf("%s/strip_guideLFC_perExon_perGene.pdf", output_folder)
+pdf(out_file_3, width=20, height=15, useDingbats=FALSE)
 #for (k in unique(val_ess$gene_name)) {
 #  print(k)
 #  # Removing data for exons with <100 guides targeting it
@@ -175,8 +185,8 @@ pdf(outF_3, width=20, height=15, useDingbats=FALSE)
 
 ## 4) distribution of gene fraction vs logFC
 # point
-outF_4 <- sprintf("%s/point_guideLFC_gene_fraction", outDir)
-pdf(sprintf("%s.pdf", outF_4), width=15, height=7.5)
+out_file_4 <- sprintf("%s/point_guideLFC_gene_fraction", output_folder)
+pdf(sprintf("%s.pdf", out_file_4), width=15, height=7.5)
 p4 <- ggplot(val_ess, aes(x=gene_fraction, y=logFC, colour=guide_target)) +
         geom_point(alpha=0.25) +
         geom_smooth(se=TRUE) +
@@ -188,15 +198,15 @@ print(p4)
 dev.off()
 
 # facet by chromosome
-outF_4b <- sprintf("%s_perChrom.pdf", outF_4)
-pdf(outF_4b, width=20, height=15)
+out_file_4b <- sprintf("%s_perChrom.pdf", out_file_4)
+pdf(out_file_4b, width=20, height=15)
 p4b <- p4 + facet_wrap(.~chrom, ncol=5)
 print(p4b)
 dev.off()
 
 # binned boxplot
-outF_5 <- sprintf("%s/boxplot_guideLFC_vs_gene_fraction", outDir)
-pdf(sprintf("%s.pdf", outF_5), width=5.5, height=7)
+out_file_5 <- sprintf("%s/boxplot_guideLFC_vs_gene_fraction", output_folder)
+pdf(sprintf("%s.pdf", out_file_5), width=5.5, height=7)
 p5 <- ggplot(val_ess, aes(x=gene_fraction_bin, y=logFC)) +
         geom_boxplot(fill="lightgrey") +
         geom_hline(yintercept=0, linetype="dashed", colour="blue") +
@@ -208,8 +218,8 @@ print(p5)
 dev.off()
 
 # facet by chromosome
-outF_5b <- sprintf("%s_perChrom.pdf", outF_5)
-pdf(outF_5b, width=15, height=15)
+out_file_5b <- sprintf("%s_perChrom.pdf", out_file_5)
+pdf(out_file_5b, width=15, height=15)
 p5b <- p5 + facet_wrap(.~chrom, ncol=5)
 print(p5b)
 dev.off()
@@ -227,8 +237,8 @@ for (j in 1:max(val_ess$Exon)) {
 }
 colnames(df) <- c("Exon", "Fraction")
 
-outF_7 <- sprintf("%s/bar_guideFraction_vs_Exon.pdf", outDir)
-pdf(outF_7, width=30, height=5)
+out_file_7 <- sprintf("%s/bar_guideFraction_vs_Exon.pdf", output_folder)
+pdf(out_file_7, width=30, height=5)
 p7 <- ggplot(df, aes(x=factor(Exon), y=Fraction)) +
         geom_bar(stat="identity") +
         labs(x="Exon", y="Guide fraction",
@@ -243,8 +253,8 @@ dev.off()
 means <- aggregate(val[,c("doench_score", "provean_score", "disorder_score")], list(val$gene_fraction_bin, val$essentiality), mean)
 means_melt <- melt(means)
 
-outF_8 <- sprintf("%s/bar_guideScores_vs_gene_fraction.pdf", outDir)
-pdf(outF_8, width=17, height=4.5)
+out_file_8 <- sprintf("%s/bar_guideScores_vs_gene_fraction.pdf", output_folder)
+pdf(out_file_8, width=17, height=4.5)
 p8 <- ggplot(means_melt, aes(x=Group.1, y=value)) +
         facet_wrap(.~variable, scales="free", nrow=1) +
         geom_bar(stat="identity") +
@@ -262,8 +272,8 @@ dev.off()
 score_df <- val[,c("guide", "logFC", "essentiality", "doench_bin", "provean_bin", "disorder_bin", "guide_target", "SecStruct")]
 score_df_melt <- melt(score_df, measure.vars=c("doench_bin", "provean_bin", "disorder_bin", "guide_target", "SecStruct"))
 
-outF_9 <- sprintf("%s/boxplot_guideLFC_vs_crispro_scores.png", outDir)
-pdf(outF_9, width=20, height=5)
+out_file_9 <- sprintf("%s/boxplot_guideLFC_vs_crispro_scores.png", output_folder)
+pdf(out_file_9, width=20, height=5)
 p9 <- ggplot(score_df_melt, aes(x=factor(value), y=logFC, fill=essentiality)) +
         facet_grid(.~variable, scales="free_x", space="free_x") +
         geom_hline(yintercept=0, linetype="dashed") +
@@ -281,8 +291,8 @@ dev.off()
 score_df2 <- val_ess[,c("guide", "logFC", "guide_target", "doench_score", "oof_score", "disorder_score", "provean_score")]
 score_df_melt2 <- melt(score_df2, measure.vars=c("doench_score", "oof_score", "disorder_score", "provean_score"))
 
-outF_10 <- sprintf("%s/point_guideLFC_vs_crispro_scores.pdf", outDir)
-pdf(outF_10, width=20, height=5)
+out_file_10 <- sprintf("%s/point_guideLFC_vs_crispro_scores.pdf", output_folder)
+pdf(out_file_10, width=20, height=5)
 p10 <- ggplot(score_df_melt2, aes(x=value, y=logFC, colour=guide_target)) +
         facet_wrap(.~variable, scales="free", nrow=1) +
         geom_point(alpha=0.25) +
@@ -298,8 +308,8 @@ dev.off()
 #dat_plot <- filter(val, SecStruct != "None")
 dat_plot <- val
 
-outF_11 <- sprintf("%s/boxplot_guideLFC_vs_SecStruct.pdf", outDir)
-pdf(outF_11, width=15, height=7)
+out_file_11 <- sprintf("%s/boxplot_guideLFC_vs_SecStruct.pdf", output_folder)
+pdf(out_file_11, width=15, height=7)
 p11 <- ggplot(dat_plot, aes(x=SecStruct, y=logFC)) +
         facet_wrap(.~essentiality) +
         geom_boxplot() +
